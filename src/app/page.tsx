@@ -117,6 +117,21 @@ export default function Home() {
 
       push('assistant', `Listo: subí ${data.uploaded?.length || pendingFiles.length} archivo(s).`);
       setPendingFiles([]);
+
+      // Auto-continue the flow after upload
+      try {
+        const cont = await fetch('/api/chat/message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_token: token, text: 'listo' })
+        });
+        const contData = await cont.json().catch(() => null);
+        if (cont.ok && contData?.reply) {
+          push('assistant', String(contData.reply));
+        }
+      } catch {
+        // best-effort; user can type "listo" manually
+      }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       push('assistant', `Error subiendo fotos: ${msg}`);
