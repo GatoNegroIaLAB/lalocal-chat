@@ -30,6 +30,9 @@ export default function Home() {
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
 
+  const [threads, setThreads] = useState<Array<{ id: string; title: string; updatedAt: number }>>([]);
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -40,6 +43,11 @@ export default function Home() {
       setTokenInput(t);
     }
   }, []);
+
+  useEffect(() => {
+    if (!token) return;
+    void refreshThreads();
+  }, [token]);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -64,6 +72,71 @@ export default function Home() {
     }
   }
 
+  async function refreshThreads() {
+    try {
+      const res = await fetch('/api/chat/history');
+      const data = await res.json().catch(() => null);
+      if (!res.ok) return;
+      const list = Array.isArray(data?.threads) ? data.threads : [];
+      setThreads(list.map((t: unknown) => {
+        const obj = (t && typeof t === 'object') ? (t as Record<string, unknown>) : {};
+        return {
+          id: String(obj.id || ''),
+          title: String(obj.title || 'Chat'),
+          updatedAt: Number(obj.updatedAt || 0)
+        };
+      }));
+    } catch {}
+  }
+
+  async function loadThread(threadId: string) {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/chat/history/${encodeURIComponent(threadId)}`);
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      const t = data?.thread;
+      const msgs = Array.isArray(t?.messages) ? t.messages : [];
+      setActiveThreadId(threadId);
+      setMessages(
+        msgs.map((m: unknown) => {
+          const obj = (m && typeof m === 'object') ? (m as Record<string, unknown>) : {};
+          const roleRaw = String(obj.role || 'assistant');
+          const role = (roleRaw === 'user' || roleRaw === 'assistant' || roleRaw === 'system') ? (roleRaw as ChatRole) : 'assistant';
+          return {
+            id: uid(role),
+            role,
+            text: String(obj.text || ''),
+            ts: Number(obj.ts || Date.now())
+          };
+        })
+      );
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      push('assistant', `Error cargando historial: ${msg}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function newChat() {
+    setBusy(true);
+    try {
+      const res = await fetch('/api/chat/new', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'Chat' }) });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      const id = String(data?.thread?.id || '');
+      setActiveThreadId(id || null);
+      setMessages([]);
+      await refreshThreads();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      push('assistant', `Error creando chat: ${msg}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function sendMessage() {
     const t = text.trim();
     if (!t || busy) return;
@@ -76,10 +149,12 @@ export default function Home() {
       const res = await fetch('/api/chat/message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_token: token, text: t })
+        body: JSON.stringify({ user_token: token, text: t, thread_id: activeThreadId })
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+
+      if (data?.thread_id && !activeThreadId) setActiveThreadId(String(data.thread_id));
 
       const reply = String(data?.reply || '');
       if (reply) push('assistant', reply);
@@ -87,6 +162,8 @@ export default function Home() {
       if (data?.request_upload === true) {
         push('assistant', 'Puedes adjuntar 5–10 fotos aquí y luego presionar “Subir fotos”.');
       }
+
+      await refreshThreads();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
       push('assistant', `Error: ${msg}`);
@@ -123,7 +200,7 @@ export default function Home() {
         const cont = await fetch('/api/chat/message', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_token: token, text: 'listo' })
+          body: JSON.stringify({ user_token: token, text: 'listo', thread_id: activeThreadId })
         });
         const contData = await cont.json().catch(() => null);
         if (cont.ok && contData?.reply) {
@@ -168,99 +245,133 @@ export default function Home() {
   return (
     <main style={styles.main}>
       <div style={styles.shell}>
-        <header style={styles.header}>
-          <div>
-            <div style={styles.title}>LocalBot</div>
-            <div style={styles.subtitle}>Gestión de locaciones (Crear / Actualizar / Consultar)</div>
+        {/* Left sidebar: history */}
+        <aside style={styles.sidebar} aria-label="Historial">
+          <div style={styles.sidebarHeader}>
+            <div style={styles.sidebarTitle}>Historial</div>
+            <button style={styles.sidebarButton} onClick={() => void newChat()} disabled={busy} type="button">
+              Nuevo
+            </button>
           </div>
-          <button
-            style={styles.linkButton}
-            onClick={() => {
-              window.localStorage.removeItem('lalocal_user_token');
-              setToken('');
-              setTokenInput('');
-              setMessages([]);
-            }}
-            disabled={busy}
-          >
-            Cambiar token
-          </button>
-        </header>
 
-        <section style={styles.chat}>
-          {messages.map((m) => (
-            <div key={m.id} style={{ ...styles.bubbleRow, justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
-              <div style={{
-                ...styles.bubble,
-                background: m.role === 'user' ? '#111827' : '#f3f4f6',
-                color: m.role === 'user' ? 'white' : '#111827',
-                borderColor: m.role === 'user' ? '#111827' : '#e5e7eb'
-              }}>
-                <pre style={styles.pre}>{m.text}</pre>
-              </div>
+          <div style={styles.threadList}>
+            {threads.length === 0 ? (
+              <div style={styles.sidebarEmpty}>Sin chats aún.</div>
+            ) : (
+              threads.slice(0, 20).map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => void loadThread(t.id)}
+                  style={{
+                    ...styles.threadItem,
+                    background: t.id === activeThreadId ? '#111827' : 'transparent',
+                    color: t.id === activeThreadId ? 'white' : '#111827',
+                    borderColor: t.id === activeThreadId ? '#111827' : 'transparent'
+                  }}
+                >
+                  <div style={styles.threadTitle}>{t.title || 'Chat'}</div>
+                </button>
+              ))
+            )}
+          </div>
+        </aside>
+
+        {/* Main column */}
+        <div style={styles.mainCol}>
+          <header style={styles.header}>
+            <div>
+              <div style={styles.title}>LocalBot</div>
+              <div style={styles.subtitle}>Gestión de locaciones (Crear / Actualizar / Consultar)</div>
             </div>
-          ))}
-          <div ref={scrollRef} />
-        </section>
-
-        <section style={styles.composer}>
-          <div style={styles.row}>
-            {/* Hidden file input + explicit button to trigger it (more reliable across browsers/embeds) */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={(e) => setPendingFiles(Array.from(e.target.files || []))}
-              style={{ display: 'none' }}
-              aria-label="Adjuntar fotos"
-            />
             <button
-              onClick={() => fileInputRef.current?.click()}
-              style={styles.secondaryButton}
+              style={styles.linkButton}
+              onClick={() => {
+                window.localStorage.removeItem('lalocal_user_token');
+                setToken('');
+                setTokenInput('');
+                setMessages([]);
+                setThreads([]);
+                setActiveThreadId(null);
+              }}
               disabled={busy}
               type="button"
             >
-              Adjuntar fotos
+              Cambiar token
             </button>
+          </header>
 
-            <div style={styles.small}>
-              {pendingFiles.length ? `${pendingFiles.length} archivo(s) seleccionado(s)` : 'Sin archivos seleccionados'}
+          <section style={styles.chat}>
+            {messages.map((m) => (
+              <div key={m.id} style={{ ...styles.bubbleRow, justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                <div
+                  style={{
+                    ...styles.bubble,
+                    background: m.role === 'user' ? '#111827' : '#f3f4f6',
+                    color: m.role === 'user' ? 'white' : '#111827',
+                    borderColor: m.role === 'user' ? '#111827' : '#e5e7eb'
+                  }}
+                >
+                  <pre style={styles.pre}>{m.text}</pre>
+                </div>
+              </div>
+            ))}
+            <div ref={scrollRef} />
+          </section>
+
+          <section style={styles.composer}>
+            <div style={styles.row}>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={(e) => setPendingFiles(Array.from(e.target.files || []))}
+                style={{ display: 'none' }}
+                aria-label="Adjuntar fotos"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                style={styles.secondaryButton}
+                disabled={busy}
+                type="button"
+              >
+                Adjuntar fotos
+              </button>
+
+              <div style={styles.small}>
+                {pendingFiles.length ? `${pendingFiles.length} archivo(s) seleccionado(s)` : 'Sin archivos seleccionados'}
+              </div>
+
+              <button onClick={uploadPhotos} style={styles.secondaryButton} disabled={busy || pendingFiles.length === 0} type="button">
+                Subir fotos
+              </button>
+              {uploadProgress && <div style={styles.small}>Subiendo…</div>}
             </div>
 
-            <button onClick={uploadPhotos} style={styles.secondaryButton} disabled={busy || pendingFiles.length === 0} type="button">
-              Subir fotos
-            </button>
-            {uploadProgress && (
-              <div style={styles.small}>Subiendo…</div>
-            )}
-          </div>
+            <div style={styles.row}>
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Escribe tu mensaje…"
+                style={styles.textarea}
+                rows={3}
+                disabled={busy}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    void sendMessage();
+                  }
+                }}
+              />
+              <button onClick={sendMessage} style={styles.button} disabled={busy || text.trim().length === 0} type="button">
+                Enviar
+              </button>
+            </div>
 
-          <div style={styles.row}>
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Escribe tu mensaje…"
-              style={styles.textarea}
-              rows={3}
-              disabled={busy}
-              onKeyDown={(e) => {
-                // ChatGPT-like: Enter sends, Shift+Enter newline
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  void sendMessage();
-                }
-              }}
-            />
-            <button onClick={sendMessage} style={styles.button} disabled={busy || text.trim().length === 0} type="button">
-              Enviar
-            </button>
-          </div>
-
-          <div style={styles.hint}>
-            Enter para enviar • Shift+Enter para nueva línea
-          </div>
-        </section>
+            <div style={styles.hint}>Enter para enviar • Shift+Enter para nueva línea</div>
+          </section>
+        </div>
       </div>
     </main>
   );
@@ -275,14 +386,64 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'
   },
   shell: {
-    maxWidth: 980,
+    maxWidth: 1180,
     margin: '0 auto',
     display: 'flex',
-    flexDirection: 'column',
+    flexDirection: 'row',
     height: '100vh',
     borderLeft: '1px solid #e5e7eb',
     borderRight: '1px solid #e5e7eb',
     background: 'white'
+  },
+  sidebar: {
+    width: 280,
+    borderRight: '1px solid #e5e7eb',
+    background: '#f7f7f8',
+    padding: 12,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10
+  },
+  sidebarHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  sidebarTitle: { fontWeight: 650, fontSize: 13, color: '#111827' },
+  sidebarButton: {
+    borderRadius: 10,
+    border: '1px solid #d1d5db',
+    background: 'white',
+    color: '#111827',
+    padding: '6px 10px',
+    cursor: 'pointer',
+    fontSize: 12
+  },
+  threadList: {
+    overflowY: 'auto',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+    paddingRight: 2
+  },
+  threadItem: {
+    textAlign: 'left',
+    borderRadius: 10,
+    border: '1px solid transparent',
+    padding: '8px 10px',
+    cursor: 'pointer'
+  },
+  threadTitle: {
+    fontSize: 13,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis'
+  },
+  sidebarEmpty: { color: '#6b7280', fontSize: 12, padding: '8px 2px' },
+  mainCol: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column'
   },
   header: {
     padding: '14px 16px',
