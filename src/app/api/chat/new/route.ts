@@ -11,10 +11,11 @@ function getApiBase() {
 export async function POST(req: Request) {
   try {
     const apiBase = getApiBase();
+    const userToken = req.headers.get('x-user-token') || '';
     const body = await req.json().catch(() => ({}));
     const upstream = await fetch(`${apiBase}/lalocal/v1/chat/new`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-User-Token': userToken },
       body: JSON.stringify(body)
     });
     const raw = await upstream.text();

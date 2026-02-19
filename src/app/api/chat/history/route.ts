@@ -8,10 +8,11 @@ function getApiBase() {
   return base.replace(/\/$/, '');
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const apiBase = getApiBase();
-    const upstream = await fetch(`${apiBase}/lalocal/v1/chat/history`, { method: 'GET' });
+    const userToken = req.headers.get('x-user-token') || '';
+    const upstream = await fetch(`${apiBase}/lalocal/v1/chat/history`, { method: 'GET', headers: { 'X-User-Token': userToken } });
     const raw = await upstream.text();
     const data = raw ? JSON.parse(raw) : null;
     return NextResponse.json(data, { status: upstream.status });

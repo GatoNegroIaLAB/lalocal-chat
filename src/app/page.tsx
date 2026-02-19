@@ -74,7 +74,7 @@ export default function Home() {
 
   async function refreshThreads() {
     try {
-      const res = await fetch('/api/chat/history');
+      const res = await fetch('/api/chat/history', { headers: { 'X-User-Token': token } });
       const data = await res.json().catch(() => null);
       if (!res.ok) return;
       const list = Array.isArray(data?.threads) ? data.threads : [];
@@ -92,7 +92,7 @@ export default function Home() {
   async function loadThread(threadId: string) {
     setBusy(true);
     try {
-      const res = await fetch(`/api/chat/history/${encodeURIComponent(threadId)}`);
+      const res = await fetch(`/api/chat/history/${encodeURIComponent(threadId)}`, { headers: { 'X-User-Token': token } });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
       const t = data?.thread;
@@ -122,7 +122,7 @@ export default function Home() {
   async function newChat() {
     setBusy(true);
     try {
-      const res = await fetch('/api/chat/new', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'Chat' }) });
+      const res = await fetch('/api/chat/new', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-User-Token': token }, body: JSON.stringify({ title: 'Chat' }) });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
       const id = String(data?.thread?.id || '');
