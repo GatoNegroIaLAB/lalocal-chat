@@ -31,6 +31,7 @@ export default function Home() {
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     const t = window.localStorage.getItem('lalocal_user_token') || '';
@@ -188,14 +189,29 @@ export default function Home() {
 
         <section style={styles.composer}>
           <div style={styles.row}>
+            {/* Hidden file input + explicit button to trigger it (more reliable across browsers/embeds) */}
             <input
+              ref={fileInputRef}
               type="file"
               multiple
               accept="image/*"
               onChange={(e) => setPendingFiles(Array.from(e.target.files || []))}
-              disabled={busy}
+              style={{ display: 'none' }}
             />
-            <button onClick={uploadPhotos} style={styles.secondaryButton} disabled={busy || pendingFiles.length === 0}>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              style={styles.secondaryButton}
+              disabled={busy}
+              type="button"
+            >
+              Adjuntar fotos
+            </button>
+
+            <div style={styles.small}>
+              {pendingFiles.length ? `${pendingFiles.length} archivo(s) seleccionado(s)` : 'Sin archivos seleccionados'}
+            </div>
+
+            <button onClick={uploadPhotos} style={styles.secondaryButton} disabled={busy || pendingFiles.length === 0} type="button">
               Subir fotos
             </button>
             {uploadProgress && (
