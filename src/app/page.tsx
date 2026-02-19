@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 type ChatRole = 'user' | 'assistant' | 'system';
 
@@ -17,6 +17,8 @@ type UploadResult = {
   error?: string;
 };
 
+const MAX_PHOTOS = 5;
+
 function uid(prefix = 'm') {
   return `${prefix}_${Math.random().toString(16).slice(2)}_${Date.now()}`;
 }
@@ -29,8 +31,12 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
+  const [showPhotoMenu, setShowPhotoMenu] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const t = window.localStorage.getItem('lalocal_user_token') || '';
@@ -43,6 +49,51 @@ export default function Home() {
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages.length]);
+
+  // Close the photo menu when clicking outside
+  useEffect(() => {
+    if (!showPhotoMenu) return;
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowPhotoMenu(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showPhotoMenu]);
+
+  const handleGallerySelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const selected = Array.from(e.target.files || []);
+      if (selected.length === 0) return;
+      setPendingFiles((prev) => {
+        const combined = [...prev, ...selected].slice(0, MAX_PHOTOS);
+        return combined;
+      });
+      // Reset so the same file can be re-selected
+      e.target.value = '';
+      setShowPhotoMenu(false);
+    },
+    []
+  );
+
+  const handleCameraCapture = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const selected = Array.from(e.target.files || []);
+      if (selected.length === 0) return;
+      setPendingFiles((prev) => {
+        const combined = [...prev, ...selected].slice(0, MAX_PHOTOS);
+        return combined;
+      });
+      e.target.value = '';
+      setShowPhotoMenu(false);
+    },
+    []
+  );
+
+  const removeFile = useCallback((index: number) => {
+    setPendingFiles((prev) => prev.filter((_, i) => i !== index));
+  }, []);
 
   const isAuthed = useMemo(() => token.trim().length > 0, [token]);
 
@@ -187,27 +238,112 @@ export default function Home() {
         </section>
 
         <section style={styles.composer}>
+          {/* Hidden file inputs */}
+          <input
+            ref={galleryInputRef}
+            type="file"
+            multiple
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={handleGallerySelect}
+            disabled={busy}
+          />
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            style={{ display: 'none' }}
+            onChange={handleCameraCapture}
+            disabled={busy}
+          />
+
+          {/* Pending files preview */}
+          {pendingFiles.length > 0 && (
+            <div style={styles.previewRow}>
+              {pendingFiles.map((f, i) => (
+                <div key={`${f.name}-${i}`} style={styles.previewChip}>
+                  <span style={styles.previewName}>{f.name.length > 18 ? f.name.slice(0, 15) + '...' : f.name}</span>
+                  <button
+                    style={styles.removeBtn}
+                    onClick={() => removeFile(i)}
+                    aria-label={`Eliminar ${f.name}`}
+                    disabled={busy}
+                  >
+                    x
+                  </button>
+                </div>
+              ))}
+              <span style={styles.small}>{pendingFiles.length}/{MAX_PHOTOS}</span>
+            </div>
+          )}
+
           <div style={styles.row}>
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={(e) => setPendingFiles(Array.from(e.target.files || []))}
-              disabled={busy}
-            />
-            <button onClick={uploadPhotos} style={styles.secondaryButton} disabled={busy || pendingFiles.length === 0}>
-              Subir fotos
+            {/* Photo menu button */}
+            <div style={{ position: 'relative' }} ref={menuRef}>
+              <button
+                onClick={() => setShowPhotoMenu((v) => !v)}
+                style={styles.secondaryButton}
+                disabled={busy || pendingFiles.length >= MAX_PHOTOS}
+                aria-haspopup="true"
+                aria-expanded={showPhotoMenu}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6, verticalAlign: 'middle' }}>
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
+                Subir fotos
+              </button>
+
+              {showPhotoMenu && (
+                <div style={styles.photoMenu} role="menu">
+                  <button
+                    style={styles.menuItem}
+                    role="menuitem"
+                    onClick={() => {
+                      cameraInputRef.current?.click();
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 8, flexShrink: 0 }}>
+                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                      <circle cx="12" cy="13" r="4" />
+                    </svg>
+                    Abrir camara
+                  </button>
+                  <button
+                    style={styles.menuItem}
+                    role="menuitem"
+                    onClick={() => {
+                      galleryInputRef.current?.click();
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 8, flexShrink: 0 }}>
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                      <circle cx="8.5" cy="8.5" r="1.5" />
+                      <polyline points="21 15 16 10 5 21" />
+                    </svg>
+                    {'Elegir de galeria (1-5)'}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Upload trigger */}
+            <button
+              onClick={uploadPhotos}
+              style={styles.button}
+              disabled={busy || pendingFiles.length === 0}
+            >
+              {uploadProgress ? 'Subiendo...' : `Enviar ${pendingFiles.length > 0 ? `(${pendingFiles.length})` : ''}`}
             </button>
-            {uploadProgress && (
-              <div style={styles.small}>Subiendo…</div>
-            )}
           </div>
 
           <div style={styles.row}>
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Escribe tu mensaje…"
+              placeholder="Escribe tu mensaje..."
               style={styles.textarea}
               rows={3}
               disabled={busy}
@@ -221,7 +357,7 @@ export default function Home() {
           </div>
 
           <div style={styles.hint}>
-            Tip: Ctrl/⌘ + Enter para enviar.
+            {'Tip: Ctrl/\u2318 + Enter para enviar.'}
           </div>
         </section>
       </div>
@@ -334,6 +470,64 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer'
   },
   hint: { fontSize: 12, color: '#9ca3af' },
+  photoMenu: {
+    position: 'absolute' as const,
+    bottom: '100%',
+    left: 0,
+    marginBottom: 6,
+    background: '#1f2937',
+    border: '1px solid #374151',
+    borderRadius: 10,
+    padding: 4,
+    minWidth: 220,
+    zIndex: 50,
+    boxShadow: '0 4px 24px rgba(0,0,0,0.5)'
+  },
+  menuItem: {
+    display: 'flex',
+    alignItems: 'center',
+    width: '100%',
+    padding: '10px 12px',
+    background: 'transparent',
+    border: 'none',
+    color: '#e5e7eb',
+    fontSize: 14,
+    cursor: 'pointer',
+    borderRadius: 8,
+    textAlign: 'left' as const
+  },
+  previewRow: {
+    display: 'flex',
+    flexWrap: 'wrap' as const,
+    gap: 6,
+    alignItems: 'center'
+  },
+  previewChip: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 4,
+    background: '#1f2937',
+    border: '1px solid #374151',
+    borderRadius: 8,
+    padding: '4px 8px',
+    fontSize: 12,
+    color: '#cbd5e1'
+  },
+  previewName: {
+    maxWidth: 120,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap' as const
+  },
+  removeBtn: {
+    background: 'transparent',
+    border: 'none',
+    color: '#ef4444',
+    cursor: 'pointer',
+    fontSize: 12,
+    padding: '0 2px',
+    lineHeight: 1
+  },
   card: {
     maxWidth: 520,
     margin: '10vh auto 0',
