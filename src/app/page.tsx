@@ -192,8 +192,9 @@ export default function Home() {
             <div key={m.id} style={{ ...styles.bubbleRow, justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
               <div style={{
                 ...styles.bubble,
-                background: m.role === 'user' ? '#1f2937' : '#111827',
-                borderColor: m.role === 'user' ? '#374151' : '#1f2937'
+                background: m.role === 'user' ? '#111827' : '#f3f4f6',
+                color: m.role === 'user' ? 'white' : '#111827',
+                borderColor: m.role === 'user' ? '#111827' : '#e5e7eb'
               }}>
                 <pre style={styles.pre}>{m.text}</pre>
               </div>
@@ -212,6 +213,7 @@ export default function Home() {
               accept="image/*"
               onChange={(e) => setPendingFiles(Array.from(e.target.files || []))}
               style={{ display: 'none' }}
+              aria-label="Adjuntar fotos"
             />
             <button
               onClick={() => fileInputRef.current?.click()}
@@ -243,16 +245,20 @@ export default function Home() {
               rows={3}
               disabled={busy}
               onKeyDown={(e) => {
-                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') sendMessage();
+                // ChatGPT-like: Enter sends, Shift+Enter newline
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  void sendMessage();
+                }
               }}
             />
-            <button onClick={sendMessage} style={styles.button} disabled={busy || text.trim().length === 0}>
+            <button onClick={sendMessage} style={styles.button} disabled={busy || text.trim().length === 0} type="button">
               Enviar
             </button>
           </div>
 
           <div style={styles.hint}>
-            Tip: Ctrl/⌘ + Enter para enviar.
+            Enter para enviar • Shift+Enter para nueva línea
           </div>
         </section>
       </div>
@@ -263,9 +269,9 @@ export default function Home() {
 const styles: Record<string, React.CSSProperties> = {
   main: {
     minHeight: '100vh',
-    padding: 24,
-    background: '#0b1020',
-    color: '#e5e7eb',
+    padding: 0,
+    background: '#f7f7f8',
+    color: '#111827',
     fontFamily: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'
   },
   shell: {
@@ -273,35 +279,36 @@ const styles: Record<string, React.CSSProperties> = {
     margin: '0 auto',
     display: 'flex',
     flexDirection: 'column',
-    height: 'calc(100vh - 48px)',
-    border: '1px solid #1f2937',
-    borderRadius: 12,
-    overflow: 'hidden',
-    background: '#0b1227'
+    height: '100vh',
+    borderLeft: '1px solid #e5e7eb',
+    borderRight: '1px solid #e5e7eb',
+    background: 'white'
   },
   header: {
     padding: '14px 16px',
-    borderBottom: '1px solid #1f2937',
+    borderBottom: '1px solid #e5e7eb',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
+    background: 'white'
   },
-  title: { fontWeight: 700, fontSize: 16 },
-  subtitle: { fontSize: 12, color: '#9ca3af' },
+  title: { fontWeight: 650, fontSize: 15, letterSpacing: 0.2 },
+  subtitle: { fontSize: 12, color: '#6b7280' },
   chat: {
-    padding: 16,
+    padding: 18,
     overflowY: 'auto',
-    flex: 1
+    flex: 1,
+    background: 'white'
   },
   bubbleRow: {
     display: 'flex',
-    marginBottom: 10
+    marginBottom: 12
   },
   bubble: {
     maxWidth: '85%',
     padding: '10px 12px',
     border: '1px solid',
-    borderRadius: 12
+    borderRadius: 14
   },
   pre: {
     margin: 0,
@@ -309,14 +316,15 @@ const styles: Record<string, React.CSSProperties> = {
     wordBreak: 'break-word',
     fontFamily: 'inherit',
     fontSize: 14,
-    lineHeight: 1.35
+    lineHeight: 1.45
   },
   composer: {
-    borderTop: '1px solid #1f2937',
-    padding: 12,
+    borderTop: '1px solid #e5e7eb',
+    padding: 14,
     display: 'flex',
     flexDirection: 'column',
-    gap: 10
+    gap: 10,
+    background: '#f7f7f8'
   },
   row: {
     display: 'flex',
@@ -325,55 +333,59 @@ const styles: Record<string, React.CSSProperties> = {
   },
   textarea: {
     flex: 1,
-    borderRadius: 10,
-    border: '1px solid #374151',
-    background: '#0b1020',
-    color: '#e5e7eb',
-    padding: 10,
-    resize: 'vertical'
+    borderRadius: 12,
+    border: '1px solid #d1d5db',
+    background: 'white',
+    color: '#111827',
+    padding: '10px 12px',
+    resize: 'none',
+    outline: 'none',
+    boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
   },
   input: {
     width: '100%',
-    borderRadius: 10,
-    border: '1px solid #374151',
-    background: '#0b1020',
-    color: '#e5e7eb',
-    padding: 10
+    borderRadius: 12,
+    border: '1px solid #d1d5db',
+    background: 'white',
+    color: '#111827',
+    padding: '10px 12px',
+    outline: 'none'
   },
   button: {
-    borderRadius: 10,
-    border: '1px solid #374151',
-    background: '#2563eb',
+    borderRadius: 12,
+    border: '1px solid #111827',
+    background: '#111827',
     color: 'white',
     padding: '10px 14px',
     cursor: 'pointer'
   },
   secondaryButton: {
-    borderRadius: 10,
-    border: '1px solid #374151',
-    background: '#111827',
-    color: 'white',
+    borderRadius: 12,
+    border: '1px solid #d1d5db',
+    background: 'white',
+    color: '#111827',
     padding: '8px 12px',
     cursor: 'pointer'
   },
   linkButton: {
-    borderRadius: 10,
-    border: '1px solid #374151',
-    background: 'transparent',
-    color: '#e5e7eb',
+    borderRadius: 12,
+    border: '1px solid #d1d5db',
+    background: 'white',
+    color: '#111827',
     padding: '8px 12px',
     cursor: 'pointer'
   },
-  hint: { fontSize: 12, color: '#9ca3af' },
+  hint: { fontSize: 12, color: '#6b7280' },
   card: {
     maxWidth: 520,
     margin: '10vh auto 0',
     padding: 18,
-    borderRadius: 12,
-    border: '1px solid #1f2937',
-    background: '#0b1227'
+    borderRadius: 16,
+    border: '1px solid #e5e7eb',
+    background: 'white',
+    boxShadow: '0 10px 30px rgba(0,0,0,0.08)'
   },
   h1: { margin: '0 0 8px', fontSize: 22 },
-  p: { margin: '0 0 14px', color: '#cbd5e1' },
-  small: { marginTop: 10, color: '#9ca3af', fontSize: 12 }
+  p: { margin: '0 0 14px', color: '#374151' },
+  small: { marginTop: 10, color: '#6b7280', fontSize: 12 }
 };
