@@ -89,4 +89,49 @@
   .chat {
     padding: 14px;
   }
+
+  .mobileMenuButton {
+    display: inline-flex;
+  }
+
+  .drawerOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.25);
+    z-index: 50;
+  }
+
+  .drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: min(88vw, 320px);
+    background: #f7f7f8;
+    border-right: 1px solid #e5e7eb;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 51;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+}
+
+.mobileMenuButton {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #111827;
+  cursor: pointer;
+}
+
+.mobileMenuIcon {
+  width: 18px;
+  height: 18px;
 }

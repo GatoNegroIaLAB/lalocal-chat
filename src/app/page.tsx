@@ -33,6 +33,7 @@ export default function Home() {
 
   const [threads, setThreads] = useState<Array<{ id: string; title: string; updatedAt: number }>>([]);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -99,6 +100,7 @@ export default function Home() {
       const t = data?.thread;
       const msgs = Array.isArray(t?.messages) ? t.messages : [];
       setActiveThreadId(threadId);
+      setDrawerOpen(false);
       setMessages(
         msgs.map((m: unknown) => {
           const obj = (m && typeof m === 'object') ? (m as Record<string, unknown>) : {};
@@ -287,9 +289,24 @@ export default function Home() {
         {/* Main column */}
         <div className={stylesCss.mainCol}>
           <header className={stylesCss.header}>
-            <div>
-              <div style={styles.title}>LocalBot</div>
-              <div style={styles.subtitle}>Gestión de locaciones (Crear / Actualizar / Consultar)</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+              <button
+                className={stylesCss.mobileMenuButton}
+                type="button"
+                onClick={() => setDrawerOpen(true)}
+                aria-label="Abrir historial"
+                disabled={busy}
+              >
+                <svg className={stylesCss.mobileMenuIcon} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M3 5.5H17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  <path d="M3 10H17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                  <path d="M3 14.5H17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+              </button>
+              <div style={{ minWidth: 0 }}>
+                <div style={styles.title}>LocalBot</div>
+                <div style={styles.subtitle}>Gestión de locaciones (Crear / Actualizar / Consultar)</div>
+              </div>
             </div>
             <button
               style={styles.linkButton}
@@ -300,6 +317,7 @@ export default function Home() {
                 setMessages([]);
                 setThreads([]);
                 setActiveThreadId(null);
+                setDrawerOpen(false);
               }}
               disabled={busy}
               type="button"
@@ -307,6 +325,42 @@ export default function Home() {
               Cambiar token
             </button>
           </header>
+
+          {/* Mobile drawer */}
+          {drawerOpen && (
+            <>
+              <div className={stylesCss.drawerOverlay} onClick={() => setDrawerOpen(false)} aria-hidden="true" />
+              <aside className={stylesCss.drawer} aria-label="Historial">
+                <div className={stylesCss.sidebarHeader}>
+                  <div style={styles.sidebarTitle}>Historial</div>
+                  <button style={styles.sidebarButton} onClick={() => void newChat()} disabled={busy} type="button">
+                    Nuevo
+                  </button>
+                </div>
+                <div className={stylesCss.threadList}>
+                  {threads.length === 0 ? (
+                    <div style={styles.sidebarEmpty}>Sin chats aún.</div>
+                  ) : (
+                    threads.slice(0, 20).map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => void loadThread(t.id)}
+                        style={{
+                          ...styles.threadItem,
+                          background: t.id === activeThreadId ? '#111827' : 'transparent',
+                          color: t.id === activeThreadId ? 'white' : '#111827',
+                          borderColor: t.id === activeThreadId ? '#111827' : 'transparent'
+                        }}
+                      >
+                        <div style={styles.threadTitle}>{t.title || 'Chat'}</div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </aside>
+            </>
+          )}
 
           <section className={stylesCss.chat}>
             {messages.map((m) => (
