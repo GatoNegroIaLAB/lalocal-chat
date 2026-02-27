@@ -251,17 +251,17 @@ export default function Home() {
 
   return (
     <main className={stylesCss.app} style={styles.main}>
-      <div className={stylesCss.shell} style={styles.shell}>
+      <div className={stylesCss.shell}>
         {/* Left sidebar: history */}
-        <aside className={stylesCss.sidebar} style={styles.sidebar} aria-label="Historial">
-          <div className={stylesCss.sidebarHeader} style={styles.sidebarHeader}>
+        <aside className={stylesCss.sidebar} aria-label="Historial">
+          <div className={stylesCss.sidebarHeader}>
             <div style={styles.sidebarTitle}>Historial</div>
             <button style={styles.sidebarButton} onClick={() => void newChat()} disabled={busy} type="button">
               Nuevo
             </button>
           </div>
 
-          <div className={stylesCss.threadList} style={styles.threadList}>
+          <div className={stylesCss.threadList}>
             {threads.length === 0 ? (
               <div style={styles.sidebarEmpty}>Sin chats aún.</div>
             ) : (
@@ -285,8 +285,8 @@ export default function Home() {
         </aside>
 
         {/* Main column */}
-        <div className={stylesCss.mainCol} style={styles.mainCol}>
-          <header className={stylesCss.header} style={styles.header}>
+        <div className={stylesCss.mainCol}>
+          <header className={stylesCss.header}>
             <div>
               <div style={styles.title}>LocalBot</div>
               <div style={styles.subtitle}>Gestión de locaciones (Crear / Actualizar / Consultar)</div>
@@ -308,7 +308,7 @@ export default function Home() {
             </button>
           </header>
 
-          <section className={stylesCss.chat} style={styles.chat}>
+          <section className={stylesCss.chat}>
             {messages.map((m) => (
               <div key={m.id} style={{ ...styles.bubbleRow, justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
                 <div
@@ -326,7 +326,7 @@ export default function Home() {
             <div ref={scrollRef} />
           </section>
 
-          <section className={stylesCss.composer} style={styles.composer}>
+          <section className={stylesCss.composer}>
             <div style={styles.row}>
               <input
                 ref={fileInputRef}
@@ -392,30 +392,14 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#111827',
     fontFamily: 'ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'
   },
-  shell: {
-    maxWidth: 1180,
-    margin: '0 auto',
-    display: 'flex',
-    flexDirection: 'row',
-    height: '100vh',
-    borderLeft: '1px solid #e5e7eb',
-    borderRight: '1px solid #e5e7eb',
-    background: 'white'
-  },
-  sidebar: {
-    width: 280,
-    borderRight: '1px solid #e5e7eb',
-    background: '#f7f7f8',
-    padding: 12,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 10
-  },
-  sidebarHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between'
-  },
+  // Layout is handled in chat.module.css for correct mobile behavior
+  shell: {},
+  sidebar: {},
+  sidebarHeader: {},
+  threadList: {},
+  mainCol: {},
+  header: {},
+
   sidebarTitle: { fontWeight: 650, fontSize: 13, color: '#111827' },
   sidebarButton: {
     borderRadius: 10,
@@ -425,13 +409,6 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '6px 10px',
     cursor: 'pointer',
     fontSize: 12
-  },
-  threadList: {
-    overflowY: 'auto',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 6,
-    paddingRight: 2
   },
   threadItem: {
     textAlign: 'left',
@@ -447,27 +424,10 @@ const styles: Record<string, React.CSSProperties> = {
     textOverflow: 'ellipsis'
   },
   sidebarEmpty: { color: '#6b7280', fontSize: 12, padding: '8px 2px' },
-  mainCol: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column'
-  },
-  header: {
-    padding: '14px 16px',
-    borderBottom: '1px solid #e5e7eb',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    background: 'white'
-  },
+
   title: { fontWeight: 650, fontSize: 15, letterSpacing: 0.2 },
   subtitle: { fontSize: 12, color: '#6b7280' },
-  chat: {
-    padding: 18,
-    overflowY: 'auto',
-    flex: 1,
-    background: 'white'
-  },
+
   bubbleRow: {
     display: 'flex',
     marginBottom: 12
