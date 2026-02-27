@@ -522,7 +522,8 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '10px 12px',
     resize: 'none',
     outline: 'none',
-    boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+    boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+    fontSize: 16
   },
   input: {
     width: '100%',
@@ -531,7 +532,8 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'white',
     color: '#111827',
     padding: '10px 12px',
-    outline: 'none'
+    outline: 'none',
+    fontSize: 16
   },
   button: {
     borderRadius: 12,
