@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import stylesCss from './chat.module.css';
 
 type ChatRole = 'user' | 'assistant' | 'system';
 
@@ -45,11 +46,6 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (!token) return;
-    void refreshThreads();
-  }, [token]);
-
-  useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages.length]);
 
@@ -72,7 +68,7 @@ export default function Home() {
     }
   }
 
-  async function refreshThreads() {
+  const refreshThreads = useCallback(async () => {
     try {
       const res = await fetch('/api/chat/history', { headers: { 'X-User-Token': token } });
       const data = await res.json().catch(() => null);
@@ -87,7 +83,12 @@ export default function Home() {
         };
       }));
     } catch {}
-  }
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
+    void refreshThreads();
+  }, [token, refreshThreads]);
 
   async function loadThread(threadId: string) {
     setBusy(true);
@@ -226,14 +227,20 @@ export default function Home() {
           <p style={styles.p}>
             Pega tu <b>token de usuario</b> para continuar.
           </p>
+          <label style={{ display: 'block', fontSize: 12, color: '#6b7280', marginBottom: 6 }} htmlFor="token">
+            Token
+          </label>
           <input
+            id="token"
+            name="token"
             value={tokenInput}
             onChange={(e) => setTokenInput(e.target.value)}
-            placeholder="Token"
+            placeholder="Pega tu token…"
             style={styles.input}
             autoFocus
+            autoComplete="off"
           />
-          <button onClick={saveToken} style={styles.button}>Entrar</button>
+          <button onClick={saveToken} style={styles.button} type="button">Entrar</button>
           <p style={styles.small}>
             Nota: el token se guarda en tu navegador (localStorage).
           </p>
@@ -243,18 +250,18 @@ export default function Home() {
   }
 
   return (
-    <main style={styles.main}>
-      <div style={styles.shell}>
+    <main className={stylesCss.app} style={styles.main}>
+      <div className={stylesCss.shell} style={styles.shell}>
         {/* Left sidebar: history */}
-        <aside style={styles.sidebar} aria-label="Historial">
-          <div style={styles.sidebarHeader}>
+        <aside className={stylesCss.sidebar} style={styles.sidebar} aria-label="Historial">
+          <div className={stylesCss.sidebarHeader} style={styles.sidebarHeader}>
             <div style={styles.sidebarTitle}>Historial</div>
             <button style={styles.sidebarButton} onClick={() => void newChat()} disabled={busy} type="button">
               Nuevo
             </button>
           </div>
 
-          <div style={styles.threadList}>
+          <div className={stylesCss.threadList} style={styles.threadList}>
             {threads.length === 0 ? (
               <div style={styles.sidebarEmpty}>Sin chats aún.</div>
             ) : (
@@ -278,8 +285,8 @@ export default function Home() {
         </aside>
 
         {/* Main column */}
-        <div style={styles.mainCol}>
-          <header style={styles.header}>
+        <div className={stylesCss.mainCol} style={styles.mainCol}>
+          <header className={stylesCss.header} style={styles.header}>
             <div>
               <div style={styles.title}>LocalBot</div>
               <div style={styles.subtitle}>Gestión de locaciones (Crear / Actualizar / Consultar)</div>
@@ -301,7 +308,7 @@ export default function Home() {
             </button>
           </header>
 
-          <section style={styles.chat}>
+          <section className={stylesCss.chat} style={styles.chat}>
             {messages.map((m) => (
               <div key={m.id} style={{ ...styles.bubbleRow, justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
                 <div
@@ -319,7 +326,7 @@ export default function Home() {
             <div ref={scrollRef} />
           </section>
 
-          <section style={styles.composer}>
+          <section className={stylesCss.composer} style={styles.composer}>
             <div style={styles.row}>
               <input
                 ref={fileInputRef}

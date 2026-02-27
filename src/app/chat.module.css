@@ -1,0 +1,92 @@
+.app {
+  min-height: 100vh;
+  background: #f7f7f8;
+  color: #111827;
+}
+
+.shell {
+  max-width: 1180px;
+  margin: 0 auto;
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  border-left: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+.sidebar {
+  border-right: 1px solid #e5e7eb;
+  background: #f7f7f8;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.sidebarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.threadList {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 2px;
+}
+
+.mainCol {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-width: 0;
+}
+
+.header {
+  padding: 14px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.chat {
+  padding: 18px;
+  overflow-y: auto;
+  min-width: 0;
+}
+
+.composer {
+  border-top: 1px solid #e5e7eb;
+  padding: 14px;
+  background: #f7f7f8;
+  padding-bottom: calc(14px + env(safe-area-inset-bottom));
+}
+
+/* Mobile */
+@media (max-width: 900px) {
+  .shell {
+    max-width: none;
+    margin: 0;
+    grid-template-columns: 1fr;
+    border-left: 0;
+    border-right: 0;
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .chat {
+    padding: 14px;
+  }
+}
