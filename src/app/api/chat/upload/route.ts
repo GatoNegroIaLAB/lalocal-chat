@@ -12,6 +12,7 @@ export async function POST(req: Request) {
   try {
     const form = await req.formData();
     const user_token = String(form.get('user_token') || '');
+    const thread_id = String(form.get('thread_id') || '');
     if (!user_token) return NextResponse.json({ ok: false, error: 'user_token required' }, { status: 400 });
 
     const files = form.getAll('files').filter(Boolean) as File[];
@@ -19,11 +20,11 @@ export async function POST(req: Request) {
 
     const apiBase = getApiBase();
 
-    // Proxy the request to backend. Backend should interpret user_token and current location (LLL).
+    // Proxy the request to backend. Preserve thread context so uploads stay attached to the active flow.
     const upstreamForm = new FormData();
     upstreamForm.set('user_token', user_token);
+    if (thread_id) upstreamForm.set('thread_id', thread_id);
     for (const f of files) {
-      // File has .name in the Web File API
       upstreamForm.append('files', f, f.name || 'upload');
     }
 

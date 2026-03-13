@@ -10,17 +10,17 @@ function getApiBase() {
 
 export async function POST(req: Request) {
   try {
-    const { user_token, text } = (await req.json()) as { user_token?: string; text?: string };
+    const { user_token, text, thread_id } = (await req.json()) as { user_token?: string; text?: string; thread_id?: string | null };
     if (!user_token) return NextResponse.json({ ok: false, error: 'user_token required' }, { status: 400 });
     if (!text) return NextResponse.json({ ok: false, error: 'text required' }, { status: 400 });
 
     const apiBase = getApiBase();
 
-    // This endpoint will be implemented inside lalocal-webhook.
+    // This endpoint is implemented in lalocal-webhook. Preserve thread context when present.
     const upstream = await fetch(`${apiBase}/lalocal/v1/chat/message`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_token, text })
+      body: JSON.stringify({ user_token, text, thread_id: thread_id || undefined })
     });
 
     const raw = await upstream.text();

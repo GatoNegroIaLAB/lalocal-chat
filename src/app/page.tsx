@@ -163,7 +163,7 @@ export default function Home() {
       if (reply) push('assistant', reply);
 
       if (data?.request_upload === true) {
-        push('assistant', 'Puedes adjuntar 5–10 fotos aquí y luego presionar “Subir fotos”.');
+        push('assistant', 'Puedes adjuntar fotos o videos aquí y luego presionar “Subir archivos”.');
       }
 
       await refreshThreads();
@@ -186,9 +186,10 @@ export default function Home() {
     setUploadProgress({ done: 0, total: pendingFiles.length });
 
     try {
-      // We upload via our own API route (server-side proxy). It will loop and upload one-by-one.
+      // We upload via our own API route (server-side proxy) and preserve active thread context.
       const form = new FormData();
       form.set('user_token', token);
+      if (activeThreadId) form.set('thread_id', activeThreadId);
       for (const f of pendingFiles) form.append('files', f, f.name);
 
       const res = await fetch('/api/chat/upload', { method: 'POST', body: form });
@@ -386,7 +387,7 @@ export default function Home() {
                 ref={fileInputRef}
                 type="file"
                 multiple
-                accept="image/*"
+                accept="image/*,video/*"
                 onChange={(e) => setPendingFiles(Array.from(e.target.files || []))}
                 style={{ display: 'none' }}
                 aria-label="Adjuntar fotos"
@@ -397,7 +398,7 @@ export default function Home() {
                 disabled={busy}
                 type="button"
               >
-                Adjuntar fotos
+                Adjuntar archivos
               </button>
 
               <div style={styles.small}>
@@ -405,7 +406,7 @@ export default function Home() {
               </div>
 
               <button onClick={uploadPhotos} style={styles.secondaryButton} disabled={busy || pendingFiles.length === 0} type="button">
-                Subir fotos
+                Subir archivos
               </button>
               {uploadProgress && <div style={styles.small}>Subiendo…</div>}
             </div>
