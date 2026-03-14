@@ -34,7 +34,6 @@ export default function Home() {
   const [threads, setThreads] = useState<Array<{ id: string; title: string; updatedAt: number }>>([]);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [threadMenuOpenId, setThreadMenuOpenId] = useState<string | null>(null);
 
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -50,14 +49,6 @@ export default function Home() {
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages.length]);
-
-  useEffect(() => {
-    function closeMenus() {
-      setThreadMenuOpenId(null);
-    }
-    window.addEventListener('click', closeMenus);
-    return () => window.removeEventListener('click', closeMenus);
-  }, []);
 
   const isAuthed = useMemo(() => token.trim().length > 0, [token]);
 
@@ -140,7 +131,6 @@ export default function Home() {
       const id = String(data?.thread?.id || '');
       setActiveThreadId(id || null);
       setMessages([]);
-      setThreadMenuOpenId(null);
       await refreshThreads();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -156,7 +146,6 @@ export default function Home() {
     if (!ok) return;
 
     setBusy(true);
-    setThreadMenuOpenId(null);
     try {
       const res = await fetch(`/api/chat/history/${encodeURIComponent(threadId)}`, {
         method: 'DELETE',
@@ -307,40 +296,19 @@ export default function Home() {
               <div style={styles.sidebarEmpty}>Sin chats aún.</div>
             ) : (
               threads.slice(0, 20).map((t) => (
-                <div key={t.id} className={stylesCss.threadRow}>
-                  <button
-                    type="button"
-                    onClick={() => void loadThread(t.id)}
-                    style={{
-                      ...styles.threadItem,
-                      background: t.id === activeThreadId ? '#111827' : 'transparent',
-                      color: t.id === activeThreadId ? 'white' : '#111827',
-                      borderColor: t.id === activeThreadId ? '#111827' : 'transparent'
-                    }}
-                  >
-                    <div style={styles.threadTitle}>{t.title || 'Chat'}</div>
-                  </button>
-                  <div className={stylesCss.threadActions}>
-                    <button
-                      type="button"
-                      className={stylesCss.threadMenuButton}
-                      aria-label="Opciones del chat"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setThreadMenuOpenId((curr) => (curr === t.id ? null : t.id));
-                      }}
-                    >
-                      ⋯
-                    </button>
-                    {threadMenuOpenId === t.id && (
-                      <div className={stylesCss.threadMenu} onClick={(e) => e.stopPropagation()}>
-                        <button type="button" className={stylesCss.threadMenuItemDanger} onClick={() => void deleteThread(t.id)}>
-                          Borrar chat
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => void loadThread(t.id)}
+                  style={{
+                    ...styles.threadItem,
+                    background: t.id === activeThreadId ? '#111827' : 'transparent',
+                    color: t.id === activeThreadId ? 'white' : '#111827',
+                    borderColor: t.id === activeThreadId ? '#111827' : 'transparent'
+                  }}
+                >
+                  <div style={styles.threadTitle}>{t.title || 'Chat'}</div>
+                </button>
               ))
             )}
           </div>
@@ -368,22 +336,34 @@ export default function Home() {
                 <div style={styles.subtitle}>Gestión de locaciones (Crear / Actualizar / Consultar)</div>
               </div>
             </div>
-            <button
-              style={styles.linkButton}
-              onClick={() => {
-                window.localStorage.removeItem('lalocal_user_token');
-                setToken('');
-                setTokenInput('');
-                setMessages([]);
-                setThreads([]);
-                setActiveThreadId(null);
-                setDrawerOpen(false);
-              }}
-              disabled={busy}
-              type="button"
-            >
-              Cambiar token
-            </button>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              {activeThreadId && (
+                <button
+                  style={styles.dangerButton}
+                  onClick={() => void deleteThread(activeThreadId)}
+                  disabled={busy}
+                  type="button"
+                >
+                  Borrar chat actual
+                </button>
+              )}
+              <button
+                style={styles.linkButton}
+                onClick={() => {
+                  window.localStorage.removeItem('lalocal_user_token');
+                  setToken('');
+                  setTokenInput('');
+                  setMessages([]);
+                  setThreads([]);
+                  setActiveThreadId(null);
+                  setDrawerOpen(false);
+                }}
+                disabled={busy}
+                type="button"
+              >
+                Cambiar token
+              </button>
+            </div>
           </header>
 
           {/* Mobile drawer */}
@@ -402,40 +382,19 @@ export default function Home() {
                     <div style={styles.sidebarEmpty}>Sin chats aún.</div>
                   ) : (
                     threads.slice(0, 20).map((t) => (
-                      <div key={t.id} className={stylesCss.threadRow}>
-                        <button
-                          type="button"
-                          onClick={() => void loadThread(t.id)}
-                          style={{
-                            ...styles.threadItem,
-                            background: t.id === activeThreadId ? '#111827' : 'transparent',
-                            color: t.id === activeThreadId ? 'white' : '#111827',
-                            borderColor: t.id === activeThreadId ? '#111827' : 'transparent'
-                          }}
-                        >
-                          <div style={styles.threadTitle}>{t.title || 'Chat'}</div>
-                        </button>
-                        <div className={stylesCss.threadActions}>
-                          <button
-                            type="button"
-                            className={stylesCss.threadMenuButton}
-                            aria-label="Opciones del chat"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setThreadMenuOpenId((curr) => (curr === t.id ? null : t.id));
-                            }}
-                          >
-                            ⋯
-                          </button>
-                          {threadMenuOpenId === t.id && (
-                            <div className={stylesCss.threadMenu} onClick={(e) => e.stopPropagation()}>
-                              <button type="button" className={stylesCss.threadMenuItemDanger} onClick={() => void deleteThread(t.id)}>
-                                Borrar chat
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => void loadThread(t.id)}
+                        style={{
+                          ...styles.threadItem,
+                          background: t.id === activeThreadId ? '#111827' : 'transparent',
+                          color: t.id === activeThreadId ? 'white' : '#111827',
+                          borderColor: t.id === activeThreadId ? '#111827' : 'transparent'
+                        }}
+                      >
+                        <div style={styles.threadTitle}>{t.title || 'Chat'}</div>
+                      </button>
                     ))
                   )}
                 </div>
@@ -640,6 +599,14 @@ const styles: Record<string, React.CSSProperties> = {
     border: '1px solid #d1d5db',
     background: 'white',
     color: '#111827',
+    padding: '8px 12px',
+    cursor: 'pointer'
+  },
+  dangerButton: {
+    borderRadius: 12,
+    border: '1px solid #fecaca',
+    background: '#fff1f2',
+    color: '#b91c1c',
     padding: '8px 12px',
     cursor: 'pointer'
   },
