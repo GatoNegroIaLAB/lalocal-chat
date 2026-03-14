@@ -40,6 +40,58 @@
   padding-right: 2px;
 }
 
+.threadRow {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.threadActions {
+  position: relative;
+}
+
+.threadMenuButton {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #111827;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.threadMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 140px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  z-index: 30;
+}
+
+.threadMenuItemDanger {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: #b91c1c;
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.threadMenuItemDanger:hover {
+  background: #fef2f2;
+}
+
 .mainCol {
   display: grid;
   grid-template-rows: auto 1fr auto;

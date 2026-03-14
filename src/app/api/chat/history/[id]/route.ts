@@ -22,3 +22,18 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     return NextResponse.json({ ok: false, error: msg }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await ctx.params;
+    const apiBase = getApiBase();
+    const userToken = req.headers.get('x-user-token') || '';
+    const upstream = await fetch(`${apiBase}/lalocal/v1/chat/history/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { 'X-User-Token': userToken } });
+    const raw = await upstream.text();
+    const data = raw ? JSON.parse(raw) : null;
+    return NextResponse.json(data, { status: upstream.status });
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return NextResponse.json({ ok: false, error: msg }, { status: 500 });
+  }
+}
