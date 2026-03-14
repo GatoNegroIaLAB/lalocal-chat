@@ -550,7 +550,10 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 10,
     border: '1px solid transparent',
     padding: '8px 10px',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    width: '100%',
+    minWidth: 0,
+    overflow: 'hidden'
   },
   threadTitle: {
     fontSize: 13,

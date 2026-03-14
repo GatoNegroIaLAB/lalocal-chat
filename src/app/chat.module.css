@@ -46,10 +46,12 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 6px;
   align-items: center;
+  min-width: 0;
 }
 
 .threadActions {
   position: relative;
+  flex: 0 0 auto;
 }
 
 .threadMenuButton {
@@ -75,6 +77,14 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
   padding: 6px;
   z-index: 30;
+}
+
+@media (max-width: 900px) {
+  .threadMenu {
+    right: 0;
+    left: auto;
+    max-width: min(70vw, 180px);
+  }
 }
 
 .threadMenuItemDanger {
